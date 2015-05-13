@@ -1,0 +1,43 @@
+#!/bin/bash
+
+
+# Replace runtime variables into config files
+sed -e "s/database_name_here/$MYSQL_DATABASE_NAME/
+  s/username_here/$MYSQL_USER/
+  s/password_here/$MYSQL_PASSWORD/
+  /'DB_HOST'/s/localhost/$MYSQL_PORT_3306_TCP_ADDR/
+  /'AUTH_KEY'/s/put your unique phrase here/`pwgen -c -n -1 65`/
+  /'SECURE_AUTH_KEY'/s/put your unique phrase here/`pwgen -c -n -1 65`/
+  /'LOGGED_IN_KEY'/s/put your unique phrase here/`pwgen -c -n -1 65`/
+  /'NONCE_KEY'/s/put your unique phrase here/`pwgen -c -n -1 65`/
+  /'AUTH_SALT'/s/put your unique phrase here/`pwgen -c -n -1 65`/
+  /'SECURE_AUTH_SALT'/s/put your unique phrase here/`pwgen -c -n -1 65`/
+  /'LOGGED_IN_SALT'/s/put your unique phrase here/`pwgen -c -n -1 65`/
+  /'NONCE_SALT'/s/put your unique phrase here/`pwgen -c -n -1 65`/" $WWW_ROOT/wp-config-sample.php > $WWW_ROOT/wp-config.php
+chown www-data:www-data $WWW_ROOT/wp-config.php
+
+
+# Create user access
+hostIP=`ifconfig | grep -Eo 'inet (addr:)?([0-9]*\.){3}[0-9]*' | grep -Eo '([0-9]*\.){3}[0-9]*' | grep -v '127.0.0.1' | head -n 1`
+tempSqlFile='/tmp/mysql-first-time.sql'
+cat > "$tempSqlFile" <<-EOSQL
+  CREATE DATABASE IF NOT EXISTS \`${MYSQL_DATABASE_NAME}\`;
+  CREATE USER '$MYSQL_USER'@'$hostIP' IDENTIFIED BY '$MYSQL_PASSWORD';
+  GRANT ALL ON \`${MYSQL_DATABASE_NAME}\`.* TO '$MYSQL_USER'@'$hostIP';
+  FLUSH PRIVILEGES;
+EOSQL
+
+mysql -h $MYSQL_PORT_3306_TCP_ADDR -P $MYSQL_PORT_3306_TCP_PORT -u$MYSQL_ROOT_USER -p$MYSQL_ROOT_PASSWORD < $tempSqlFile
+rm $tempSqlFile
+MYSQL_ROOT_USER=''
+MYSQL_ROOT_PASSWORD=''
+
+
+# Install and activate plugins after db connection is configured in wp-config.php
+cd $WWW_ROOT && wp --allow-root plugin activate siteurl.php
+cd $WWW_ROOT && wp --allow-root plugin install nginx-helper
+cd $WWW_ROOT && wp --allow-root plugin activate nginx-helper
+
+
+# Start server
+supervisord -n
