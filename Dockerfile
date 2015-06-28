@@ -37,9 +37,11 @@ RUN sed -i -e "s/%DEFAULT_SERVER_HOSTNAME%/$DEFAULT_SERVER_HOSTNAME/g" /etc/ngin
 ## note: using ',' instead of '/' as $WWW_ROOT contains slashes and will make the sed argument invalid
 RUN sed -i -e "s,%WWW_ROOT%,$WWW_ROOT,g" /etc/nginx/sites-available/default
 
-# Startup script
+#Setup and startup script
 ADD ./scripts/wordpress-start /usr/local/bin/wordpress-start
+ADD ./scripts/wordpress-setup /usr/local/bin/wordpress-setup
 RUN chmod 755 /usr/local/bin/wordpress-start
+RUN chmod 755 /usr/local/bin/wordpress-setup
 
 
-CMD ["wordpress-start"]
+CMD ["wordpress-setup"]
