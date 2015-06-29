@@ -12,9 +12,11 @@ Version: 1.0
 Author URI: http://blog.alvacheung.com
 */
 function ml_clean_siteurl($url) {
-        $url="http://".$_SERVER['HTTP_HOST'];
-        return $url;
+  $host = $_SERVER != null ? $_SERVER['HTTP_HOST'] : "";
+  $url = $host != '' ?  "http://".$host : "/";
+  return $url;
 }
+
 add_filter('option_siteurl', 'ml_clean_siteurl');
 add_filter('option_home', 'ml_clean_siteurl');
 ?>
